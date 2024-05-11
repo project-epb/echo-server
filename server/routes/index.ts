@@ -4,12 +4,7 @@ import { EchoResponse, EchoResponseMetaBodyType } from '../types/EchoResponse'
 const METHODS_WITH_BODY = ['POST', 'PUT', 'PATCH', 'DELETE']
 
 export default defineEventHandler(async (event) => {
-  if (
-    event.method === 'GET' &&
-    event.node.req.url === '/' &&
-    event.headers.get('accept')?.includes('text/html') &&
-    event.headers.get('accept') !== '*/*'
-  ) {
+  if (event.method === 'GET' && event.node.req.url === '/' && event.headers.get('accept')?.startsWith('text/html')) {
     console.log('[redirect] / -> /_index.html')
     return sendRedirect(event, '/_index.html')
   }
