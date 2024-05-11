@@ -2,6 +2,7 @@
   "name": "workers-echo-server",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "postinstall": "nitro prepare",
     "dev": "nitro dev",

@@ -1,12 +1,18 @@
 import { nanoid } from 'nanoid'
 import { EchoResponse, EchoResponseMetaBodyType } from '../types/EchoResponse'
+import docHTML from '../pages/index.html'
 
 const METHODS_WITH_BODY = ['POST', 'PUT', 'PATCH', 'DELETE']
 
 export default defineEventHandler(async (event) => {
+  // Handle homepage request
   if (event.method === 'GET' && event.node.req.url === '/' && event.headers.get('accept')?.startsWith('text/html')) {
-    console.log('[redirect] / -> /_index.html')
-    return sendRedirect(event, '/_index.html')
+    return new Response(docHTML, {
+      status: 200,
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+      },
+    })
   }
 
   const starttime = Date.now()

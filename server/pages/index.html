@@ -23,8 +23,16 @@
         margin: 0 auto;
         padding: 2rem;
       }
+      p {
+        line-height: 1.5;
+      }
+      p:not(:last-child) {
+        margin-bottom: 1rem;
+      }
       pre,
-      code {
+      code,
+      input,
+      select {
         font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
       }
       pre {
@@ -39,15 +47,56 @@
         padding: 0.25rem 0.5rem;
         border-radius: 0.25rem;
       }
+      input,
+      select {
+        padding: 0.25rem;
+      }
+
+      button {
+        padding: 0.5rem 1rem;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 0.25rem;
+        cursor: pointer;
+      }
+
+      input {
+        outline: none;
+      }
+
+      select,
+      input {
+        border: 1px solid #ccc;
+        border-radius: 0.25rem;
+      }
+      select:focus,
+      input:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      }
+
+      button:focus {
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      }
+
+      #requestForm {
+        display: flex;
+        justify-content: center;
+        gap: 0.25rem;
+      }
+      #requestForm > * {
+        display: block;
+      }
     </style>
   </head>
   <body>
     <div id="app">
       <main>
         <h1>Echo Server</h1>
-        <div>
+        <form id="requestForm">
           <strong>
-            <select name="" id="method">
+            <select name="method" id="method">
               <option value="GET" selected>GET</option>
               <option value="POST">POST</option>
               <option value="PUT">PUT</option>
@@ -56,22 +105,40 @@
             </select>
           </strong>
           <code id="host"></code>
-          <input id="path" />
+          <input name="path" id="path" />
           <button id="send">SEND</button>
-        </div>
+        </form>
         <pre id="echoResponse">Loading...</pre>
-        <h2>Usage</h2>
+        <h2>HTTP Request</h2>
         <p>Feel free to send HTTP requests to this server. It will respond with the request information.</p>
         <h2>FormData</h2>
         <p>
           If you send a request with <code>multipart/form-data</code> or <code>application/x-www-form-urlencoded</code> content type, the
           server will respond the key-value pairs in the <code>formData</code> property.
         </p>
+        <h2>WebSocket</h2>
+        <p>
+          You can also connect to the WebSocket server at <code>/_ws</code> (<code>/_ws/**</code>). The server will echo back any message
+          you send.
+        </p>
+        <h2>Server Send Events</h2>
+        <p>
+          You can connect to the Server Send Events server at <code>/_sse</code> (<code>/_sse/**</code>). The server will send a message
+          every seconds.
+        </p>
+        <h2>Status Code</h2>
+        <p>
+          You can send request to <code>/_status/[code]</code> to get a response with the given status code. For example, sending a GET
+          request to <code>/_status/404</code> will respond with a 404 status code.
+        </p>
       </main>
     </div>
     <script>
       const AVAILABLE_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
       const METHODS_WITH_BODY = ['POST', 'PUT', 'PATCH', 'DELETE']
+
+      /** @type {HTMLFormElement} */
+      const requestForm = document.getElementById('requestForm')
       /** @type {HTMLSelectElement} */
       const methodSelect = document.getElementById('method')
       /** @type {HTMLInputElement} */
@@ -104,14 +171,11 @@
         })
           .then((res) => res.json())
           .catch((err) => {
-            console.error(err)
-            return {
-              error: true,
-              message: err.message,
-            }
+            console.error('Fetch error:', err)
+            return err
           })
           .then((data) => {
-            preEl.textContent = JSON.stringify(data, null, 2)
+            preEl.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
           })
           .finally((data) => {
             _loading = false
@@ -131,11 +195,11 @@
           hash = 'GET/'
         }
         if (hash.includes('/')) {
-          const [givenMethod, givenPath] = hash.split('/')
+          const [givenMethod, ...givenPath] = hash.split('/')
           if (AVAILABLE_METHODS.includes(method.toUpperCase())) {
             method = givenMethod.toUpperCase()
           }
-          path = givenPath
+          path = givenPath.join('/')
         }
         return { method, path }
       }
@@ -148,7 +212,8 @@
         hostEl.textContent = `${url.protocol}//${url.host}/`
         pathInput.value = initialPath
 
-        sendBtn.addEventListener('click', () => {
+        requestForm.addEventListener('submit', (e) => {
+          e.preventDefault()
           if (pathInput.value.startsWith('/')) {
             pathInput.value = pathInput.value.replace(/^\/+/, '')
           }
