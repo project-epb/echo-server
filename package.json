@@ -3,12 +3,22 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "deploy": "wrangler deploy",
-    "start": "wrangler dev"
+    "postinstall": "nitro prepare",
+    "dev": "nitro dev",
+    "build": "nitro build",
+    "build:cloudflare": "cross-env NITRO_PRESET=cloudflare_pages nitro build",
+    "preview:cloudflare": "wrangler pages dev dist",
+    "deploy:cloudflare": "wrangler pages deploy dist"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20230419.0",
-    "typescript": "^5.0.4",
-    "wrangler": "^3.0.0"
+    "@cloudflare/workers-types": "^4.20240502.0",
+    "@types/node": "^20.12.11",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.4.5",
+    "wrangler": "^3.55.0"
+  },
+  "dependencies": {
+    "nanoid": "^5.0.7",
+    "nitropack": "^2.9.6"
   }
 }

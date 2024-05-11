@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Echo Server</title>
+    <style>
+      :root {
+        font-size: 16px;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
+          'Helvetica Neue', sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      main {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+      pre,
+      code {
+        font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+      }
+      pre {
+        background-color: #f4f4f4;
+        padding: 1rem;
+        overflow-x: auto;
+        border-radius: 0.5rem;
+        max-height: 45vh;
+      }
+      code {
+        background-color: #f4f4f4;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <main>
+        <h1>Echo Server</h1>
+        <div>
+          <strong>
+            <select name="" id="method">
+              <option value="GET" selected>GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="PATCH">PATCH</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </strong>
+          <code id="host"></code>
+          <input id="path" />
+          <button id="send">SEND</button>
+        </div>
+        <pre id="echoResponse">Loading...</pre>
+        <h2>Usage</h2>
+        <p>Feel free to send HTTP requests to this server. It will respond with the request information.</p>
+        <h2>FormData</h2>
+        <p>
+          If you send a request with <code>multipart/form-data</code> or <code>application/x-www-form-urlencoded</code> content type, the
+          server will respond the key-value pairs in the <code>formData</code> property.
+        </p>
+      </main>
+    </div>
+    <script>
+      const AVAILABLE_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+      const METHODS_WITH_BODY = ['POST', 'PUT', 'PATCH', 'DELETE']
+      /** @type {HTMLSelectElement} */
+      const methodSelect = document.getElementById('method')
+      /** @type {HTMLInputElement} */
+      const preEl = document.getElementById('echoResponse')
+      /** @type {HTMLElement} */
+      const hostEl = document.getElementById('host')
+      /** @type {HTMLInputElement} */
+      const pathInput = document.getElementById('path')
+      /** @type {HTMLInputElement} */
+      const sendBtn = document.getElementById('send')
+
+      let _loading = false
+      async function handleRequest(method = 'GET', path = '') {
+        if (_loading) return
+
+        _loading = true
+        history.replaceState(null, '', `#${method.toUpperCase()}/${path}`)
+
+        const url = new URL(`/${path.replace(/^\/+/, '')}`, location.href)
+        return fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: METHODS_WITH_BODY.includes(method)
+            ? JSON.stringify({
+                message: 'hello, world',
+              })
+            : undefined,
+        })
+          .then((res) => res.json())
+          .catch((err) => {
+            console.error(err)
+            return {
+              error: true,
+              message: err.message,
+            }
+          })
+          .then((data) => {
+            preEl.textContent = JSON.stringify(data, null, 2)
+          })
+          .finally((data) => {
+            _loading = false
+          })
+      }
+
+      /**
+       * hash should be like this:
+       * #METHOD/path
+       * if the hash is not valid, it will default to GET/
+       */
+      function parseHash(hash = '') {
+        hash = hash.replace(/^#/, '')
+        let method = 'GET'
+        let path = ''
+        if (!hash.includes('/')) {
+          hash = 'GET/'
+        }
+        if (hash.includes('/')) {
+          const [givenMethod, givenPath] = hash.split('/')
+          if (AVAILABLE_METHODS.includes(method.toUpperCase())) {
+            method = givenMethod.toUpperCase()
+          }
+          path = givenPath
+        }
+        return { method, path }
+      }
+
+      ;(async () => {
+        const url = new URL(window.location.href)
+        const { method: initialMethod, path: initialPath } = parseHash(url.hash)
+
+        methodSelect.value = initialMethod
+        hostEl.textContent = `${url.protocol}//${url.host}/`
+        pathInput.value = initialPath
+
+        sendBtn.addEventListener('click', () => {
+          if (pathInput.value.startsWith('/')) {
+            pathInput.value = pathInput.value.replace(/^\/+/, '')
+          }
+          handleRequest(methodSelect.value, pathInput.value)
+        })
+
+        addEventListener('hashchange', () => {
+          const { method, path } = parseHash(location.hash)
+          methodSelect.value = method
+          pathInput.value = path
+          handleRequest(method, path)
+        })
+
+        await handleRequest(initialMethod, initialPath)
+      })()
+    </script>
+  </body>
+</html>
